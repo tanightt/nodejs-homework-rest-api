@@ -4,7 +4,7 @@ const ctrl = require("../../controllers/contacts");
 
 const { validateBody } = require("../../decorators");
 
-const { isValidId, isBody } = require("../../middlewares");
+const { authenticate, isValidId, isBody } = require("../../middlewares");
 
 const schemas = require("../../schemas/contacts");
 
@@ -13,6 +13,8 @@ const addValidate = validateBody(schemas.addSchema);
 const addFavoriteSchema = validateBody(schemas.addFavoriteSchema);
 
 const router = express.Router();
+
+router.use(authenticate);
 
 router.get("/", ctrl.getAll);
 
