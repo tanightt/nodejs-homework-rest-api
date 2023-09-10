@@ -1,3 +1,8 @@
+const fs = require("fs/promises");
+const path = require("path");
+const gravatar = require("gravatar");
+const Jimp = require("jimp");
+
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -9,8 +14,13 @@ const { ctrlWrapper } = require("../decorators");
 
 const { JWT_SECRET } = process.env;
 
+const avatarsPath = path.resolve("public", "avatars");
+
 const signUp = async (req, res) => {
   const { email, password } = req.body;
+
+  const avatar = gravatar.url(email, { s: "250", r: "g", d: "mp" });
+
   const user = await User.findOne({ email });
   if (user) {
     throw HttpError(409, "Email in use");
@@ -18,7 +28,11 @@ const signUp = async (req, res) => {
 
   const hashPassword = await bcrypt.hash(password, 10);
 
-  const newUser = await User.create({ ...req.body, password: hashPassword });
+  const newUser = await User.create({
+    ...req.body,
+    avatarURL: avatar,
+    password: hashPassword,
+  });
   res.status(201).json({
     email: newUser.email,
     subscription: newUser.subscription,
@@ -78,10 +92,33 @@ const updateSubscription = async (req, res) => {
   res.status(200).json(result);
 };
 
+const updateAvatar = async (req, res) => {
+  const { _id } = req.user;
+
+  const { path: oldPath, filename } = req.file;
+  const newPath = path.join(avatarsPath, filename);
+  await fs.rename(oldPath, newPath);
+
+  const image = await Jimp.read(newPath);
+  await image.resize(250, 250);
+  await image.writeAsync(newPath);
+
+  const avatarURL = `/avatars/${filename}`;
+
+  const updatedUser = await User.findByIdAndUpdate(
+    _id,
+    { avatarURL: avatarURL },
+    { new: true }
+  );
+
+  res.status(200).json(updatedUser);
+};
+
 module.exports = {
   signUp: ctrlWrapper(signUp),
   signIn: ctrlWrapper(signIn),
   getCurrent: ctrlWrapper(getCurrent),
   logout: ctrlWrapper(logout),
   updateSubscription: ctrlWrapper(updateSubscription),
+  updateAvatar: ctrlWrapper(updateAvatar),
 };
