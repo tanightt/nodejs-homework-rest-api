@@ -2,10 +2,10 @@ const mongoose = require("mongoose");
 
 const app = require("./app");
 
-const { host } = process.env;
+const { HOST } = process.env;
 
 mongoose
-  .connect(host)
+  .connect(HOST)
   .then(() => {
     app.listen(3000, () => {
       console.log("Database connection successful");
